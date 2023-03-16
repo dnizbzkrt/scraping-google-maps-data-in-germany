@@ -1,0 +1,44 @@
+import pandas as pd
+import googlemaps
+import time
+
+# create the Google Maps client
+gmaps = googlemaps.Client(key='write your api key')
+
+#cities = ['52.5167,13.3833',"53.5511, 9.9937"]
+cities = ["52.520008,13.404954",
+"53.551086,9.993682"]
+data = []
+radius = 4000
+query = 'gym'
+for location in cities:
+# Get the places nearby the location
+  results = gmaps.places(query=query, location=location, radius=radius)
+
+# Retrieve up to 100 results by paginating through the results
+
+  while True:
+      for result in results['results']:
+          place_id = result['place_id']
+          place_details = gmaps.place(place_id=place_id, fields=['name', 'formatted_address', 'international_phone_number', 'website'])
+          name = place_details['result']['name']
+          address = place_details['result'].get('formatted_address', '')
+          phone = place_details['result'].get('international_phone_number', '')
+          website = place_details['result'].get('website', '')
+          data.append({'name': name, 'address': address, 'phone': phone, 'website': website})
+
+      # Check if there are more results
+      if 'next_page_token' not in results:
+          break
+      else:
+          # Wait for 2 seconds before making the next request to avoid OVER_QUERY_LIMIT error
+          time.sleep(2)
+
+          # Get the next page of results
+          page_token = results['next_page_token']
+          results = gmaps.places(query=query, location=location, radius=radius, page_token=page_token)
+
+# Create a DataFrame from the data
+df = pd.DataFrame(data)
+df.drop_duplicates().to_excel('gyms.xlsx', index=False)
+
